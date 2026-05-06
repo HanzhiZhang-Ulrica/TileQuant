@@ -1,0 +1,11 @@
+{
+  "model_name_or_path": "meta-llama/Llama-3.2-3B-Instruct",
+  "dataset_id": "alexfabbri/multi_news",
+  "dataset_split": "train",
+  "quant_style": "gi",
+  "tile_m": 64,
+  "tile_n": 64,
+  "keep_frac": 0.2,
+  "mask_rule": "topk_by_importance",
+  "source_quant_style": "legacy_int8"
+}

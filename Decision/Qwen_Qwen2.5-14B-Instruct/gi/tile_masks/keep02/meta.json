@@ -1,0 +1,10 @@
+{
+  "model_name_or_path": "Qwen/Qwen2.5-14B-Instruct",
+  "dataset_id": "alexfabbri/multi_news",
+  "dataset_split": "train",
+  "quant_style": "gi",
+  "tile_m": 64,
+  "tile_n": 64,
+  "keep_frac": 0.02,
+  "mask_rule": "topk_by_importance"
+}

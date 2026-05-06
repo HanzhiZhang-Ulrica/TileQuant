@@ -1,0 +1,35 @@
+{
+  "model_name_or_path": "Qwen/Qwen2.5-7B-Instruct",
+  "local_model_dir": "Qwen_Qwen2.5-7B-Instruct",
+  "model_type": "qwen",
+  "dataset_id": "alexfabbri/multi_news",
+  "dataset_split": "train",
+  "quant_style": "gi",
+  "num_examples": 8192,
+  "num_batches": -1,
+  "batch_size": 1,
+  "tile_m": 64,
+  "tile_n": 64,
+  "dtype": "bf16",
+  "checkpoint_every_batches": 100,
+  "keep_fracs": [
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2
+  ],
+  "num_targets": 196,
+  "example_stats": {
+    "requested_examples": 8192.0,
+    "selected_examples": 8192.0,
+    "dataset_size": 44964.0,
+    "skipped_examples": 0.0,
+    "mean_seq_len": 2445.5347900390625,
+    "max_seq_len": 4353.0,
+    "min_seq_len": 207.0
+  },
+  "score_rule": "gi_absW_times_grad_tile_sum_accumulated_per_batch",
+  "score_file": "gi_tile_scores_tile64x64.npz",
+  "channel_stats_file": null
+}
