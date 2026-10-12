@@ -254,52 +254,6 @@ def pad_to_multiple(x: torch.Tensor, tile_m: int, tile_n: int) -> torch.Tensor:
     return F.pad(x, (0, kp - k, 0, mp - m), mode="constant", value=0.0)
 
 
-def tile_reduce_sum(x: torch.Tensor, tile_m: int, tile_n: int) -> torch.Tensor:
-    x = pad_to_multiple(x, tile_m, tile_n)
-    m, k = x.shape
-    n_tr = m // tile_m
-    n_tc = k // tile_n
-    return x.view(n_tr, tile_m, n_tc, tile_n).sum(dim=(1, 3))
-
-
-def save_heatmap(
-    tile_map: np.ndarray,
-    out_path: Path,
-    cmap: str = "viridis",
-    norm_mode: str = "log1p",
-    vmax_q: float = 0.99,
-) -> None:
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    x = tile_map.astype(np.float64, copy=False)
-    x = np.maximum(x, 0.0)
-    if norm_mode == "log1p":
-        x = np.log1p(x)
-        pos = x[x > 0]
-        if pos.size > 0:
-            scale = float(np.quantile(pos, 0.99))
-            if np.isfinite(scale) and scale > 0:
-                x = x / scale
-
-    flat = x.reshape(-1)
-    vmax = float(np.quantile(np.abs(flat), vmax_q)) if flat.size else 1.0
-    if not np.isfinite(vmax) or vmax <= 0:
-        vmax = float(np.max(np.abs(flat))) if flat.size else 1.0
-        if not np.isfinite(vmax) or vmax <= 0:
-            vmax = 1.0
-
-    fig, ax = plt.subplots(figsize=(10, 6), dpi=200)
-    _ = ax.imshow(x, cmap=cmap, vmin=0.0, vmax=vmax, aspect="auto", interpolation="nearest")
-    ax.tick_params(labelsize=7)
-    fig.colorbar(ax.images[0], ax=ax, fraction=0.046, pad=0.04)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.tight_layout()
-    fig.savefig(out_path, format="png", bbox_inches="tight")
-    plt.close(fig)
-
-
 def build_prompt_simple(document: str) -> str:
     return "Summarize the following text.\n\nText:\n" + document.strip() + "\n\nSummary:\n"
 

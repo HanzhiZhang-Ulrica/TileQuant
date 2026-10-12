@@ -4,6 +4,12 @@ from typing import Tuple
 
 import torch
 
+from .triton.quantize_activation import (
+    activation_tile_absmax_scales_64_fused,
+    quantize_activation_tile_absmax_fused,
+    quantize_activation_tile_with_scales_64_fused,
+)
+
 
 INT8_MAX = 127.0
 
@@ -44,6 +50,13 @@ def activation_tile_absmax_scales(
     n, k = x_fp.shape
     if k == 0:
         return torch.empty((0,), device=x_fp.device, dtype=torch.float32)
+    if (
+        x_fp.is_cuda
+        and x_fp.dtype in (torch.float16, torch.bfloat16)
+        and x_fp.numel() != 0
+        and tile_n == 64
+    ):
+        return activation_tile_absmax_scales_64_fused(x_fp)
 
     n_tc = (k + tile_n - 1) // tile_n
     if (k % tile_n) != 0:
@@ -79,6 +92,13 @@ def quantize_activation_tile_with_scales(
     n_tc = (k + tile_n - 1) // tile_n
     if sx.numel() != n_tc:
         raise ValueError(f"Scale length mismatch: got {sx.numel()}, expected {n_tc}")
+    if (
+        x_fp.is_cuda
+        and x_fp.dtype in (torch.float16, torch.bfloat16)
+        and tile_n == 64
+    ):
+        sx_work = sx.to(device=x_fp.device, dtype=torch.float32).contiguous()
+        return quantize_activation_tile_with_scales_64_fused(x_fp, sx_work)
 
     if (k % tile_n) != 0:
         x_work = x_fp.new_zeros((n, n_tc * tile_n))
@@ -100,6 +120,15 @@ def quantize_activation_tile_absmax(
     x_fp: torch.Tensor,
     tile_n: int = 64,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    if (
+        x_fp.dim() == 2
+        and x_fp.is_cuda
+        and x_fp.dtype in (torch.float16, torch.bfloat16)
+        and int(x_fp.shape[0]) <= 128
+        and tile_n == 64
+    ):
+        return quantize_activation_tile_absmax_fused(x_fp)
+
     sx = activation_tile_absmax_scales(x_fp, tile_n=tile_n)
     x_q = quantize_activation_tile_with_scales(x_fp, sx=sx, tile_n=tile_n)
     return x_q, sx

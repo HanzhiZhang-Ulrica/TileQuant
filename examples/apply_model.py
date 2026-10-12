@@ -18,7 +18,7 @@ QUANT_STYLE = "gi"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 MAX_SEQ_LEN = 512
 GEN_MAX_NEW_TOKENS = 64
-MODEL_NAME_OR_PATH = str(REPO_ROOT.parent / "model_path" / "meta-llama_Llama-3.2-3B-Instruct")
+MODEL_NAME_OR_PATH = "meta-llama/Llama-3.2-3B-Instruct"
 
 PROMPT = """
 [INST]Summarize the following paragraphs:[/INST]

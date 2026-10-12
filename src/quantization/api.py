@@ -33,7 +33,7 @@ except ImportError:
 
 from ..kernels.mask_io import load_fp16_keep_ids_for_layer
 from ..kernels.pack import pack_weight_from_tile_ids
-from ..models.mixed_linear import MixedLinear
+from ..models.mixed_linear import MixedLinear, fuse_projection_groups
 from ..models.rules import iter_target_linears
 from .types import ApplyConfig
 
@@ -278,6 +278,21 @@ def load_mixed_precision_model_from_masks(
     if final_replaced != len(target_names):
         raise RuntimeError(f"Replacement mismatch after load: {final_replaced}/{len(target_names)}")
 
+    # Buffers that are not in the checkpoint (e.g. RoPE inv_freq) are created on
+    # the host by from_config; keep every buffer on the model device so a forward
+    # never issues an implicit host-to-device copy (which also blocks CUDA-graph
+    # capture).
+    for module in model.modules():
+        for buffer_name, buffer in list(module._buffers.items()):
+            if buffer is not None and buffer.device != device and buffer.device.type != "meta":
+                module._buffers[buffer_name] = buffer.to(device)
+        for attr in ("original_inv_freq",):
+            value = getattr(module, attr, None)
+            if isinstance(value, torch.Tensor) and value.device != device:
+                setattr(module, attr, value.to(device))
+
+    fused_groups = fuse_projection_groups(model)
+
     if hasattr(model, "tie_weights"):
         model.tie_weights()
     model.eval()
@@ -291,4 +306,5 @@ def load_mixed_precision_model_from_masks(
         "quant_pack_total": float(quant_pack_total),
         "non_target_load_total": float(non_target_load_total),
         "attn_implementation": attn_implementation,
+        "fused_projection_groups": int(fused_groups),
     }

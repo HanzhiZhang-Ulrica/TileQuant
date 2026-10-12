@@ -11,6 +11,14 @@ TILE_M = 64
 TILE_N = 64
 
 
+def select_block_n(n_rows: int) -> int:
+    if n_rows <= 16:
+        return 16
+    if n_rows <= 32:
+        return 32
+    return 64
+
+
 @triton.jit
 def enforce_tile_layout(ptr, stride0, stride1):
     tl.multiple_of(stride0, TILE_M)
